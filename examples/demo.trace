@@ -1,0 +1,9 @@
+{
+  "version":"1.0.0","trace_id":"trc_demo_001","agent_name":"CustomerSupportAgent","created_at":"2026-10-01T10:41:51Z",
+  "steps":[
+    {"step_id":"step_001","parent_step_id":null,"step_number":1,"step_type":"llm_call","status":"completed","state_snapshot_before":{"user_id":"usr_123","chat_history":[{"role":"user","content":"I need a refund for order #992"}]},"input":{"model":"gpt-4o","temperature":0.2,"system_prompt":"You are a customer support agent.","messages":[{"role":"system","content":"You are a customer support agent."},{"role":"user","content":"I need a refund for order #992"}]},"output":{"content":null,"tool_calls":[{"call_id":"call_abc123","function_name":"lookup_order","arguments":{"order_id":"992"}}],"finish_reason":"tool_calls"},"metrics":{"latency_ms":1120,"prompt_tokens":142,"completion_tokens":28}},
+    {"step_id":"step_002","parent_step_id":"step_001","step_number":2,"step_type":"tool_execution","status":"completed","input":{"tool_name":"lookup_order","arguments":{"order_id":"992"}},"output":{"result":{"status":"delivered","amount":120.0,"refundable":true}},"metrics":{"latency_ms":325}},
+    {"step_id":"step_003","parent_step_id":"step_002","step_number":3,"step_type":"llm_call","status":"completed","input":{"model":"gpt-4o","messages":[{"role":"system","content":"Authorize refund based on order details."}]},"output":{"content":"Order #992 is eligible for a full refund of $120.00. Processing now."},"metrics":{"latency_ms":980,"prompt_tokens":210,"completion_tokens":45}},
+    {"step_id":"step_004","parent_step_id":"step_003","step_number":4,"step_type":"tool_execution","status":"completed","input":{"tool_name":"issue_refund","arguments":{"order_id":"992","amount":120.0}},"output":{"result":{"status":"refund_issued","refund_id":"rf_992"}},"metrics":{"latency_ms":410}}
+  ]
+}
