@@ -4,7 +4,7 @@ from fastapi import FastAPI,Depends,HTTPException,File,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel,Field
 from sqlalchemy.orm import Session
-from .database import init_db,SessionLocal,TraceDB,TraceStepDB,BranchDB
+from .database import init_db,SessionLocal,TraceDB,TraceStepDB,BranchDB,engine
 from .replay_engine import ReplayEngine
 app=FastAPI(title='Time-Travel AI Debugger API',version='2.0.0')
 app.add_middleware(CORSMiddleware,allow_origins=['*'],allow_credentials=True,allow_methods=['*'],allow_headers=['*'])
@@ -20,6 +20,11 @@ class ToolReplayRequest(BaseModel): trace_id:str; tool_name:str; arguments:Dict[
 def serialize(s): return {'step_id':s.step_id,'parent_step_id':s.parent_step_id,'step_number':s.step_number,'step_type':s.step_type,'status':s.status,'input':json.loads(s.input_json or '{}'),'output':json.loads(s.output_json or '{}'),'state_snapshot_before':json.loads(s.state_snapshot or '{}'),'metrics':{'latency_ms':s.latency_ms,'prompt_tokens':s.prompt_tokens,'completion_tokens':s.completion_tokens}}
 @app.get('/health')
 def health(): return {'status':'ok','service':'Replay Engine','version':'2.0.0'}
+
+@app.get('/health/db')
+def health_db(db:Session=Depends(get_db)):
+ db.execute(__import__('sqlalchemy').text('SELECT 1'))
+ return {'status':'ok','database':engine.url.get_backend_name(),'database_connected':True}
 @app.post('/api/v1/traces/upload')
 async def upload_trace(file:UploadFile=File(...),db:Session=Depends(get_db)):
  try:
