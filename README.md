@@ -68,6 +68,27 @@ A deterministic example is available at `examples/langchain_trace.py`.
 
 AI agents are difficult to debug because a failure may depend on an earlier model decision, tool result, or state mutation. Traditional logs tell you what happened; this project is designed around being able to go back to that point and explore an alternative execution path.
 
+## Contributing
+
+This project is intentionally being built as an open developer tool. If you work on AI agents, tracing, replay systems, or developer tooling, contributions are welcome.
+
+Start with the repository's `CONTRIBUTING.md` for development and integration guidelines.
+
+### Good starting points
+
+Open issues are used as concrete contribution entry points:
+
+- **LangGraph integration** — add optional graph/node execution tracing.
+- **Replay diff visualization** — compare original and forked executions.
+- **Trace search and filtering** — make large trace sets easier to navigate.
+- **Failed-step visualization** — improve error inspection and navigation.
+- **Deterministic replay tests** — expand the replay safety test matrix.
+- **Timeline keyboard controls** — improve accessibility and navigation.
+
+There are also larger integration tasks for CrewAI and OpenTelemetry.
+
+If you want to work on an issue, comment on it first so effort is not duplicated. Pull requests should include tests and documentation where appropriate.
+
 ## Project structure
 
 ```
