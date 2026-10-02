@@ -27,6 +27,59 @@ class AgentTracer:
                        'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
                        'steps':self.steps}, f, indent=2, default=str)
 
+    def start_step(self, step_type: str, input_data: Any = None,
+                   parent_step_id: str = None, metadata: dict = None):
+        """Reserve a step before external framework work starts."""
+        self.step_counter += 1
+        sid = f'step_{self.step_counter:03d}'
+        now = time.time()
+        payload = {
+            'step_id': sid,
+            'parent_step_id': parent_step_id,
+            'step_number': self.step_counter,
+            'step_type': step_type,
+            'status': 'running',
+            'timestamp_start': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(now)),
+            'timestamp_end': None,
+            'input': self._safe(input_data),
+            'output': None,
+            'metrics': {'latency_ms': 0},
+        }
+        if metadata:
+            payload['metadata'] = self._safe(metadata)
+        self._record(payload)
+        return sid
+
+    def finish_step(self, step_id: str, output: Any = None,
+                    status: str = 'completed', error: Any = None):
+        """Finish a step previously reserved with start_step."""
+        now = time.time()
+        for step in self.steps:
+            if step['step_id'] == step_id:
+                step['status'] = status
+                step['timestamp_end'] = time.strftime(
+                    '%Y-%m-%dT%H:%M:%SZ', time.gmtime(now)
+                )
+                if error is not None:
+                    step['output'] = {'error': str(error)}
+                else:
+                    step['output'] = self._safe(output)
+                start = time.mktime(time.strptime(
+                    step['timestamp_start'], '%Y-%m-%dT%H:%M:%SZ'
+                ))
+                step['metrics']['latency_ms'] = max(0, int((now - start) * 1000))
+                self._flush()
+                return step_id
+        return None
+
+    def record_step(self, step_type: str, input_data: Any = None, output: Any = None,
+                    status: str = 'completed', parent_step_id: str = None,
+                    started_at: float = None, metadata: dict = None):
+        """Record an externally managed execution step."""
+        sid = self.start_step(step_type, input_data, parent_step_id, metadata)
+        self.finish_step(sid, output, status=status)
+        return sid
+
     def trace_step(self, step_type='custom', state_snapshot_fn=None):
         def decorator(func):
             @wraps(func)
