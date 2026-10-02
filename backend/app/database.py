@@ -2,7 +2,11 @@ import os
 from sqlalchemy import create_engine, Column, String, Integer, Text, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./traces.db')
+DATABASE_URL = os.getenv('DATABASE_URL')
+if os.getenv('RENDER') == 'true' and not DATABASE_URL:
+    raise RuntimeError('DATABASE_URL is required on Render')
+
+DATABASE_URL = DATABASE_URL or 'sqlite:///./traces.db'
 connect_args = {'check_same_thread': False} if DATABASE_URL.startswith('sqlite') else {}
 engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
