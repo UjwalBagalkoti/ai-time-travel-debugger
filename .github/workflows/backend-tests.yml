@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
+      - 'sdk/**'
       - '.github/workflows/backend-tests.yml'
   pull_request:
     paths:
       - 'backend/**'
+      - 'sdk/**'
       - '.github/workflows/backend-tests.yml'
   workflow_dispatch:
 
@@ -24,4 +26,5 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
+      - run: pip install -r ../sdk/requirements-langgraph.txt
       - run: PYTHONPATH=. pytest -q

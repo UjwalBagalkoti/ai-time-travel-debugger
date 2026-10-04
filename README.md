@@ -114,6 +114,41 @@ A deterministic example is available at `examples/langchain_trace.py`.
 
 > Note: LangChain callback coverage depends on the runnable/model implementation. Some newer agent execution paths may intentionally bypass particular legacy callback events, so model-level capture should be verified for the specific LangChain stack being used.
 
+## LangGraph integration
+
+LangGraph executes graph nodes through LangChain's callback system, so the SDK includes an optional `LangGraphCallback` built on the LangChain integration. Each node is recorded as a `graph_node` step nested under the graph run.
+
+Install the optional dependency:
+
+```bash
+pip install -r sdk/requirements.txt
+pip install -r sdk/requirements-langgraph.txt
+```
+
+Attach the callback when invoking a compiled graph:
+
+```python
+from agent_tracer import AgentTracer
+from integrations.langgraph import LangGraphCallback
+
+tracer = AgentTracer("my-langgraph-agent")
+app = graph.compile()
+
+result = app.invoke(
+    {"order_id": "992"},
+    config={"callbacks": [LangGraphCallback(tracer)]},
+)
+```
+
+The integration captures:
+
+- node names and LangGraph step numbers
+- node input state and returned state updates
+- execution status, errors, and latency
+- parent/child relationships between the graph, its nodes, and any LLM, tool, or chain calls made inside a node
+
+A deterministic example is available at `examples/langgraph_trace.py`. Users who do not install LangGraph are unaffected.
+
 ## 🧪 Try a real agent failure
 
 A useful next step is to run an agent with several dependent steps, intentionally create a failure, and ask:

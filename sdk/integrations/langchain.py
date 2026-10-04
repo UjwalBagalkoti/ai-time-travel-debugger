@@ -12,7 +12,7 @@ except ImportError as exc:
         "Install it with: pip install -r sdk/requirements-langchain.txt"
     ) from exc
 
-from ..agent_tracer import AgentTracer
+from agent_tracer import AgentTracer
 
 
 class TimeTravelCallback(BaseCallbackHandler):
@@ -76,7 +76,7 @@ class TimeTravelCallback(BaseCallbackHandler):
         self._start(
             kwargs.get("run_id"),
             "chain_execution",
-            {"name": self._name(serialized, "chain"), "inputs": inputs},
+            {"name": self._name(serialized, kwargs.get("name") or "chain"), "inputs": inputs},
             kwargs.get("parent_run_id"),
             {"tags": kwargs.get("tags"), "metadata": kwargs.get("metadata")},
         )
