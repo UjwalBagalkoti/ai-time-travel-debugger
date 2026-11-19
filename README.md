@@ -1,5 +1,7 @@
 # AI Time-Travel Debugger
 
+> **Status:** Working prototype (MVP). The debugger, replay engine and API are functional; the bundled demo trace is a fictional sample. Live LLM replay requires an OpenAI API key, and the hosted demo runs on free tiers, so the first load may take ~30–60s.
+
 **Your AI agent failed 7 steps ago. Rewind it instead of rerunning everything.**
 
 Time-travel debugging and replay infrastructure for AI agents.
@@ -10,7 +12,7 @@ Record an agent execution once, inspect every step, rewind to a historical state
 
 ## 🚀 Try it
 
-- **Live debugger:** https://ai-time-travel-debugger.onrender.com
+- **Live debugger:** https://ai-time-travel-debugger-9gct.vercel.app
 - **API documentation:** https://ai-time-travel-debugger-api.onrender.com/docs
 - **API health:** https://ai-time-travel-debugger-api.onrender.com/health
 - **Database health:** https://ai-time-travel-debugger-api.onrender.com/health/db
@@ -182,6 +184,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.
 
 ## Links
 
-- **Live debugger:** https://ai-time-travel-debugger.onrender.com
+- **Live debugger:** https://ai-time-travel-debugger-9gct.vercel.app
 - **API docs:** https://ai-time-travel-debugger-api.onrender.com/docs
 - **GitHub:** https://github.com/UjwalBagalkoti/ai-time-travel-debugger
