@@ -21,7 +21,7 @@ class BranchRequest(BaseModel):
 class ToolReplayRequest(BaseModel): trace_id:str; replay_from_step_id:str; tool_name:str; arguments:Dict[str,Any]=Field(default_factory=dict)
 class AgentMessage(BaseModel): role:Literal['user','assistant']; content:str=Field(min_length=1,max_length=12000)
 class AgentRunRequest(BaseModel):
- agent_name:str=Field(min_length=1,max_length=80); instructions:str=Field(min_length=1,max_length=6000); model:str=Field(default='gpt-4o',min_length=1,max_length=100); tools:list[str]=Field(default_factory=list,max_length=2); messages:list[AgentMessage]=Field(min_length=1,max_length=20)
+ agent_name:str=Field(min_length=1,max_length=80); instructions:str=Field(min_length=1,max_length=6000); model:str=Field(default='gemini-4-hydrogen',min_length=1,max_length=100); tools:list[str]=Field(default_factory=list,max_length=2); messages:list[AgentMessage]=Field(min_length=1,max_length=20)
 
 def serialize(s): return {'step_id':s.step_id,'parent_step_id':s.parent_step_id,'step_number':s.step_number,'step_type':s.step_type,'status':s.status,'input':json.loads(s.input_json or '{}'),'output':json.loads(s.output_json or '{}'),'state_snapshot_before':json.loads(s.state_snapshot or '{}'),'metrics':{'latency_ms':s.latency_ms,'prompt_tokens':s.prompt_tokens,'completion_tokens':s.completion_tokens}}
 @app.get('/health')
@@ -36,13 +36,18 @@ def run_agent(req:AgentRunRequest,request:Request,db:Session=Depends(get_db)):
  if len(_agent_run_requests)>5000:
   for ip in list(_agent_run_requests):
    if not any(now-stamp<60 for stamp in _agent_run_requests[ip]): _agent_run_requests.pop(ip,None)
- if not os.getenv('OPENAI_API_KEY'): raise HTTPException(503,'Agent runs are unavailable: configure OPENAI_API_KEY on the backend.')
+ provider='gemini' if req.model.lower().startswith('gemini-') else 'openai'
+ key_name='GEMINI_API_KEY' if provider=='gemini' else 'OPENAI_API_KEY'
+ api_key=os.getenv(key_name)
+ if not api_key: raise HTTPException(503,f'Agent runs are unavailable: configure {key_name} on the backend.')
  if not req.messages or req.messages[-1].role!='user': raise HTTPException(422,'The last message must be from the user.')
  if sum(len(message.content) for message in req.messages)>60000: raise HTTPException(413,'This conversation is too long. Start a new chat or shorten earlier messages.')
  if len(set(req.tools))!=len(req.tools) or any(name not in SUPPORTED_TOOLS for name in req.tools): raise HTTPException(422,'Choose only the supported tools: calculator and current_time.')
  try:
   from openai import OpenAI
-  client=OpenAI()
+  client_options={'api_key':api_key}
+  if provider=='gemini': client_options['base_url']='https://generativelanguage.googleapis.com/v1beta/openai/'
+  client=OpenAI(**client_options)
   messages=[{'role':'system','content':req.instructions}]+[item.model_dump() for item in req.messages]
   tool_specs=[TOOL_SCHEMAS[name] for name in req.tools]
   trace_id=f'trc_agent_{uuid.uuid4().hex[:12]}'; trace_steps=[]; parent_step_id=None; usage={'prompt_tokens':0,'completion_tokens':0}; reply=''
@@ -92,19 +97,20 @@ def run_agent(req:AgentRunRequest,request:Request,db:Session=Depends(get_db)):
   db.rollback()
   status_code=getattr(exc,'status_code',None)
   error_type=type(exc).__name__
-  logger.warning('Agent provider request failed: type=%s status=%s',error_type,status_code if isinstance(status_code,int) else 'unknown')
+  provider_name='Gemini' if provider=='gemini' else 'OpenAI'
+  logger.warning('Agent provider request failed: provider=%s type=%s status=%s',provider,error_type,status_code if isinstance(status_code,int) else 'unknown')
   if status_code==401:
-   detail='OpenAI rejected OPENAI_API_KEY. Replace it with a valid OpenAI API key.'
+   detail=f'{provider_name} rejected {key_name}. Add a valid API key for this provider.'
   elif status_code==403:
-   detail='The OpenAI key does not have permission to use this model. Check the key project and model access.'
+   detail=f'{provider_name} denied access to this model. Check the key project and model access.'
   elif status_code==404:
-   detail='The selected OpenAI model was not found or is unavailable to this key. Choose an enabled model.'
+   detail=f'The selected {provider_name} model was not found or is unavailable to this key.'
   elif status_code==429:
-   detail='The OpenAI account is rate limited or out of quota. Check its usage limits and billing.'
+   detail='Gemini free-tier quota or rate limit reached. Check the project limits in Google AI Studio.' if provider=='gemini' else 'The OpenAI account is rate limited or out of quota. Check its usage limits and billing.'
   elif error_type=='APIConnectionError':
-   detail='The backend could not connect to OpenAI. Check the Render service network and retry.'
+   detail=f'The backend could not connect to {provider_name}. Check the Render service network and retry.'
   else:
-   detail='Agent provider request failed. Check Render logs for the safe error type and HTTP status.'
+   detail=f'{provider_name} request failed. Check Render logs for the safe error type and HTTP status.'
   raise HTTPException(502,detail) from None
 
 @app.get('/health/db')

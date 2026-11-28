@@ -20,7 +20,7 @@ const starterAgent: AgentProfile = {
   id: 'starter-assistant',
   name: 'Research assistant',
   instructions: 'You are a clear, careful research assistant. Ask a question when a request is ambiguous. Use the enabled tools when they help.',
-  model: 'gpt-4o',
+  model: 'gemini-4-hydrogen',
   tools: ['calculator', 'current_time'],
 };
 
@@ -40,8 +40,9 @@ export default function AgentsPage() {
       const saved = localStorage.getItem(STORAGE_KEY);
       const profiles = saved ? (JSON.parse(saved) as AgentProfile[]) : [starterAgent];
       const safeProfiles = Array.isArray(profiles) && profiles.length ? profiles : [starterAgent];
-      setAgents(safeProfiles);
-      setActiveId(safeProfiles[0].id);
+      const migratedProfiles = safeProfiles.map((agent) => agent.id === 'starter-assistant' && agent.model === 'gpt-4o' ? { ...agent, model: 'gemini-4-hydrogen' } : agent);
+      setAgents(migratedProfiles);
+      setActiveId(migratedProfiles[0].id);
     } catch {
       setAgents([starterAgent]);
       setActiveId(starterAgent.id);
@@ -63,7 +64,7 @@ export default function AgentsPage() {
       id: crypto.randomUUID(),
       name: 'New agent',
       instructions: 'Describe the role, goal, boundaries, and response style for your agent.',
-      model: 'gpt-4o',
+      model: 'gemini-4-hydrogen',
       tools: [],
     };
     setAgents((all) => [...all, agent]);
@@ -138,12 +139,12 @@ export default function AgentsPage() {
           <input id="agent-name" value={activeAgent?.name || ''} onChange={(event) => updateAgent({ name: event.target.value })} placeholder="For example, study planner" style={fieldStyle} />
           <label className="muted" htmlFor="agent-instructions" style={labelStyle}>INSTRUCTIONS</label>
           <textarea id="agent-instructions" value={activeAgent?.instructions || ''} onChange={(event) => updateAgent({ instructions: event.target.value })} placeholder="What should this agent do? What boundaries should it follow?" style={{ ...fieldStyle, minHeight: 180, resize: 'vertical' }} />
-          <label className="muted" htmlFor="agent-model" style={labelStyle}>MODEL</label>
+          <label className="muted" htmlFor="agent-model" style={labelStyle}>MODEL (Gemini free tier by default)</label>
           <input id="agent-model" value={activeAgent?.model || ''} onChange={(event) => updateAgent({ model: event.target.value })} style={fieldStyle} />
           <div className="muted" style={{ ...labelStyle, marginTop: 18 }}>BUILT-IN TOOLS</div>
           <label style={checkboxStyle}><input type="checkbox" checked={activeAgent?.tools.includes('calculator') || false} onChange={() => toggleTool('calculator')} /> Calculator <span className="muted">(safe arithmetic)</span></label>
           <label style={checkboxStyle}><input type="checkbox" checked={activeAgent?.tools.includes('current_time') || false} onChange={() => toggleTool('current_time')} /> Current time <span className="muted">(UTC)</span></label>
-          <div className="muted" style={{ fontSize: 12, lineHeight: 1.5, marginTop: 16 }}>Profiles are saved in this browser. Runs are stored as traces; don’t include secrets or private data.</div>
+          <div className="muted" style={{ fontSize: 12, lineHeight: 1.5, marginTop: 16 }}>Profiles are saved in this browser. Gemini free-tier quotas apply, and Google may use prompts to improve its products. Don’t include sensitive or private data.</div>
         </section>
 
         <section className="panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', minHeight: 610 }}>

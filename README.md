@@ -211,3 +211,10 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.
 - **Live debugger:** https://ai-time-travel-debugger-9gct.vercel.app
 - **API docs:** https://ai-time-travel-debugger-api.onrender.com/docs
 - **GitHub:** https://github.com/UjwalBagalkoti/ai-time-travel-debugger
+
+
+## Agent Studio: free Gemini setup
+
+Agent Studio defaults to Google's `gemini-4-hydrogen` API free tier. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/api-keys), then add it to the Render API service as `GEMINI_API_KEY` and redeploy. Keep the key in Render; never commit or share it.
+
+The free tier has model-specific quotas and may use submitted prompts to improve Google products. Avoid sending secrets or sensitive data. To use OpenAI instead, select an OpenAI model such as `gpt-4o` and configure `OPENAI_API_KEY` on Render.
