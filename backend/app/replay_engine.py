@@ -10,9 +10,15 @@ class ReplayEngine:
     def cached_tool_result(self, historical_steps, tool_name: str, requested_args: Dict[str, Any]):
         key=self.tool_cache_key(tool_name, requested_args)
         for step in historical_steps:
+            # Only reuse completed results. A failed or still-running tool call can
+            # have the same arguments but must never be treated as a valid cache hit.
+            if step.get('status') not in {'completed', 'success', 'succeeded'}:
+                continue
             inp=step.get('input', {})
             if inp.get('tool_name') and self.tool_cache_key(inp['tool_name'], inp.get('arguments', {})) == key:
                 out=step.get('output', {})
+                if not isinstance(out, dict) or 'error' in out:
+                    continue
                 return out.get('result', out), True
         return None, False
 

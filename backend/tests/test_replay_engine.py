@@ -10,6 +10,7 @@ def test_cached_tool_result_requires_exact_arguments():
     engine = ReplayEngine()
     history = [
         {
+            "status": "completed",
             "input": {"tool_name": "lookup_order", "arguments": {"order_id": 7}},
             "output": {"result": {"status": "shipped"}},
         }
@@ -26,6 +27,7 @@ def test_cached_tool_result_handles_non_result_output():
     engine = ReplayEngine()
     history = [
         {
+            "status": "completed",
             "input": {"tool_name": "refund", "arguments": {"amount": 25}},
             "output": {"status": "accepted"},
         }
