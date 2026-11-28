@@ -1,4 +1,4 @@
-import json,time,uuid,os
+import json,time,uuid,os,logging
 from typing import Any,Dict,Literal,Optional
 from fastapi import FastAPI,Depends,HTTPException,File,UploadFile,Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from .database import init_db,SessionLocal,TraceDB,TraceStepDB,BranchDB,engine
 from .replay_engine import ReplayEngine
 from .agent_tools import SUPPORTED_TOOLS,TOOL_SCHEMAS,execute_builtin_tool
+logger=logging.getLogger(__name__)
 app=FastAPI(title='Time-Travel AI Debugger API',version='2.0.0')
 app.add_middleware(CORSMiddleware,allow_origins=[os.getenv('FRONTEND_ORIGIN','https://ai-time-travel-debugger.onrender.com')],allow_credentials=True,allow_methods=['GET','POST','OPTIONS'],allow_headers=['*'])
 _agent_run_requests={}
@@ -89,7 +90,22 @@ def run_agent(req:AgentRunRequest,request:Request,db:Session=Depends(get_db)):
  except HTTPException: raise
  except Exception as exc:
   db.rollback()
-  raise HTTPException(502,'Agent run failed. Check the model name and backend provider configuration.') from exc
+  status_code=getattr(exc,'status_code',None)
+  error_type=type(exc).__name__
+  logger.warning('Agent provider request failed: type=%s status=%s',error_type,status_code if isinstance(status_code,int) else 'unknown')
+  if status_code==401:
+   detail='OpenAI rejected OPENAI_API_KEY. Replace it with a valid OpenAI API key.'
+  elif status_code==403:
+   detail='The OpenAI key does not have permission to use this model. Check the key project and model access.'
+  elif status_code==404:
+   detail='The selected OpenAI model was not found or is unavailable to this key. Choose an enabled model.'
+  elif status_code==429:
+   detail='The OpenAI account is rate limited or out of quota. Check its usage limits and billing.'
+  elif error_type=='APIConnectionError':
+   detail='The backend could not connect to OpenAI. Check the Render service network and retry.'
+  else:
+   detail='Agent provider request failed. Check Render logs for the safe error type and HTTP status.'
+  raise HTTPException(502,detail) from None
 
 @app.get('/health/db')
 def health_db(db:Session=Depends(get_db)):
