@@ -21,6 +21,7 @@ The repository includes a sample trace at [`examples/demo.trace`](examples/demo.
 
 ## What it does
 
+- Create instruction-driven agents in Agent Studio, select safe built-in tools, and inspect each run as a trace
 - Record LLM and tool execution steps, including inputs, outputs, status, and latency
 - Visualize recorded execution as a React Flow graph
 - Scrub through the execution timeline and inspect historical step inputs/outputs
@@ -28,6 +29,12 @@ The repository includes a sample trace at [`examples/demo.trace`](examples/demo.
 - Reuse recorded tool results when tool names and arguments match exactly
 - Block unknown tool calls during cached replay rather than silently executing external side effects
 - Optionally request a live LLM replay when an OpenAI API key is configured
+
+## Create an agent
+
+Open **Agent Studio** from the debugger, name an agent, write its instructions, choose a model, and enable the calculator or UTC clock tool if needed. Profiles are saved in the current browser. Each run uses the backend `OPENAI_API_KEY` and is saved as an inspectable trace; use **Inspect latest run** to open that trace in the debugger. The built-in tools are allowlisted and do not perform external side effects. Add new tools in `backend/app/agent_tools.py` before making them available to agents.
+
+Set `OPENAI_API_KEY` in the backend environment to enable agent runs. The API caps each model response at 800 tokens, allows up to 4 tool-call rounds with at most 2 built-in calls per round, caps the request history, and rate-limits runs per client. Never include credentials or private customer data in agent prompts.
 
 ## Architecture
 
@@ -151,6 +158,7 @@ See [`examples/langchain_trace.py`](examples/langchain_trace.py) for the integra
 | `GET /api/v1/traces/{trace_id}/step/{step_id}` | Inspect a single step |
 | `POST /api/v1/replay/tool` | Reuse a successful tool result from before a replay cursor |
 | `POST /api/v1/replay/branch` | Create a branch from a historical step |
+| `POST /api/v1/agents/run` | Run a configured agent and save its execution trace |
 
 For full request/response schemas, run the API and visit `/docs`.
 

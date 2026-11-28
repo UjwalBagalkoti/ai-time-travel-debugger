@@ -50,4 +50,12 @@ test('production debugger and PostgreSQL health', async ({ page, request }) => {
   await expect(fork).toBeEnabled();
   await fork.click();
   await expect(page.getByText(/Created trc_branch_/)).toBeVisible();
+
+  await page.goto('/agents');
+  await expect(page.getByRole('heading', { name: 'Agent Studio' })).toBeVisible();
+  await page.getByRole('button', { name: 'New agent' }).click();
+  await page.getByLabel('AGENT NAME').fill('Demo agent');
+  await page.getByLabel('INSTRUCTIONS').fill('Help the user plan a study session.');
+  await page.getByLabel('Message to agent').fill('Make a study plan');
+  await expect(page.getByRole('button', { name: 'Run agent' })).toBeEnabled();
 });
