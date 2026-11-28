@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   use: {
-    baseURL: process.env.BASE_URL || 'https://ai-time-travel-debugger.onrender.com',
+    baseURL: process.env.BASE_URL || 'https://ai-time-travel-debugger-9gct.vercel.app',
     headless: true,
   },
 });
