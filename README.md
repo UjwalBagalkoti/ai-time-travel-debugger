@@ -149,10 +149,26 @@ See [`examples/langchain_trace.py`](examples/langchain_trace.py) for the integra
 | `GET /api/v1/traces` | List imported traces |
 | `GET /api/v1/traces/{trace_id}` | Get a trace and its steps |
 | `GET /api/v1/traces/{trace_id}/step/{step_id}` | Inspect a single step |
-| `POST /api/v1/replay/tool` | Look up a cached tool result |
+| `POST /api/v1/replay/tool` | Reuse a successful tool result from before a replay cursor |
 | `POST /api/v1/replay/branch` | Create a branch from a historical step |
 
 For full request/response schemas, run the API and visit `/docs`.
+
+Tool replay requires a `replay_from_step_id` belonging to the trace. Only successful,
+exact-argument tool calls with a lower `step_number` are eligible for reuse; later
+steps are excluded so replay cannot consume results from the future. For example:
+
+```json
+{
+  "trace_id": "trc_example",
+  "replay_from_step_id": "step_4",
+  "tool_name": "lookup_order",
+  "arguments": {"order_id": 7}
+}
+```
+
+If there is no eligible match, the endpoint returns `mode: "cache_miss"` and does
+not execute the external tool.
 
 ## Project structure
 

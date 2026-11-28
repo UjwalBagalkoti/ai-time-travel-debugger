@@ -15,7 +15,7 @@ def get_db():
  finally: db.close()
 class BranchRequest(BaseModel):
  parent_trace_id:str; fork_step_id:str; modified_prompt:Optional[str]=None; modified_inputs:Optional[Dict[str,Any]]=None; live_llm:bool=False
-class ToolReplayRequest(BaseModel): trace_id:str; tool_name:str; arguments:Dict[str,Any]=Field(default_factory=dict)
+class ToolReplayRequest(BaseModel): trace_id:str; replay_from_step_id:str; tool_name:str; arguments:Dict[str,Any]=Field(default_factory=dict)
 
 def serialize(s): return {'step_id':s.step_id,'parent_step_id':s.parent_step_id,'step_number':s.step_number,'step_type':s.step_type,'status':s.status,'input':json.loads(s.input_json or '{}'),'output':json.loads(s.output_json or '{}'),'state_snapshot_before':json.loads(s.state_snapshot or '{}'),'metrics':{'latency_ms':s.latency_ms,'prompt_tokens':s.prompt_tokens,'completion_tokens':s.completion_tokens}}
 @app.get('/health')
@@ -51,10 +51,12 @@ def get_step(trace_id:str,step_id:str,db:Session=Depends(get_db)):
  return serialize(s)
 @app.post('/api/v1/replay/tool')
 def replay_tool(req:ToolReplayRequest,db:Session=Depends(get_db)):
- rows=db.query(TraceStepDB).filter_by(trace_id=req.trace_id,step_type='tool_execution').all()
+ cursor=db.query(TraceStepDB).filter_by(trace_id=req.trace_id,step_id=req.replay_from_step_id).first()
+ if not cursor: raise HTTPException(404,'Replay cursor step not found in trace')
+ rows=db.query(TraceStepDB).filter(TraceStepDB.trace_id==req.trace_id,TraceStepDB.step_type=='tool_execution',TraceStepDB.step_number<cursor.step_number).order_by(TraceStepDB.step_number.desc()).all()
  historical=[serialize(x) for x in rows]; result,hit=ReplayEngine().cached_tool_result(historical,req.tool_name,req.arguments)
- if not hit: return {'mode':'cache_miss','tool_name':req.tool_name,'arguments':req.arguments,'message':'No exact historical match; execution blocked by safe replay boundary.'}
- return {'mode':'cached','tool_name':req.tool_name,'arguments':req.arguments,'result':result}
+ if not hit: return {'mode':'cache_miss','replay_from_step_id':cursor.step_id,'tool_name':req.tool_name,'arguments':req.arguments,'message':'No successful exact match exists before the replay cursor; execution was not performed.'}
+ return {'mode':'cached','replay_from_step_id':cursor.step_id,'tool_name':req.tool_name,'arguments':req.arguments,'result':result}
 @app.post('/api/v1/replay/branch')
 def branch(req:BranchRequest,db:Session=Depends(get_db)):
  parent=db.query(TraceDB).filter_by(trace_id=req.parent_trace_id).first()
